@@ -3,10 +3,12 @@
 name: Sync to Hugging Face Hub (Pointer Push Mode)
 
 on:
+  # 当有代码被推送到 main 分支时，自动触发
   push:
     branches:
-      - main  # 确保这是你的主分支名
+      - main
   
+  # 允许你手动在 GitHub 的 "Actions" 页面点击运行
   workflow_dispatch:
 
 jobs:
@@ -14,24 +16,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # 第一步：只检出“指针”，不检出LFS文件
-      # 这一步会瞬间完成，且不消耗任何LFS流量
+      # 这一步会瞬间完成，且不消耗任何GitHub LFS流量
       - name: Checkout repository with LFS pointers
         uses: actions/checkout@v4
         with:
           lfs: false
 
-      # 第二步：将“指针”强制推送到Hugging Face Space
-      # 这一步也只会推送几十KB的代码和指针文件，瞬间完成
+      # 第二步：将“指针”和代码强制推送到Hugging Face Space
+      # 这一步只会推送几十KB的小文件，瞬间完成
       - name: Push code and LFS pointers to Space
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push --force https://<你的HF用户名>:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
+          git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
 
-      # 第三步：【核心魔法！】通过API，远程命令Space进行一次“硬重启”
-      # 这一步会告诉Hugging Face：“嘿，你的代码更新了，请你现在立刻、
-      # 从你自己的网络，根据你本地的LFS指针，去GitHub把大文件下载下来，
-      # 然后用最新的代码和文件，重新构建你的应用！”
+      # 第三步：通过API，远程命令Space进行一次“硬重启”
+      # 这一步会命令Hugging Face用它自己的网络去下载LFS大文件
       - name: Trigger Space restart to pull LFS files
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
