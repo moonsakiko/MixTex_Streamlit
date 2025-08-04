@@ -1,12 +1,12 @@
 # 文件名: .github/workflows/sync-to-hf.yml
-# 最终修正版，解决了 "shallow update not allowed" 问题
+# 严格遵循Hugging Face官方教程的最终版
 
 name: Sync to Hugging Face Hub
 
 on:
   push:
     branches:
-      - main
+      - main  # 确保这是你的主分支名
   
   workflow_dispatch:
 
@@ -14,29 +14,23 @@ jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
-      # ⬇️⬇️⬇️ 关键的修复在这里 ⬇️⬇️⬇️
-      - name: Checkout repository (FULL HISTORY)
-        uses: actions/checkout@v4
+      # 第一步：检出完整历史的仓库，并处理LFS文件
+      # 官方教程使用了 v3，为了稳定性我们保持一致
+      - name: Checkout repository
+        uses: actions/checkout@v3
         with:
-          # fetch-depth: 0 告诉机器人下载完整的、非浅层的历史记录
-          # 这是解决 "shallow update not allowed" 问题的唯一方法
           fetch-depth: 0
-          lfs: true # 我们需要让 checkout 知道这是一个 LFS 仓库
+          lfs: true
 
-      # 第二步：将完整的历史和代码强制推送到 Hugging Face Space
+      # 第二步：【关键】使用一个独立的Action来推送到Hub
+      # 这是比我们自己写 git push 命令更稳健、更官方的做法
       - name: Push to Hugging Face Hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          # 因为 checkout 时 lfs=true，Git LFS 会自动处理大文件
-          # 我们不再需要复杂的“指针推送”模式，直接进行标准推送
-          git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
-
-      # 第三步：(可选，但推荐保留) 重启 Space 以确保更新生效
-      - name: Trigger Space restart
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          curl -X POST \
-               -H "Authorization: Bearer $HF_TOKEN" \
-               "https://huggingface.co/api/spaces/fenghuixianyu/MixTex_Streamlit/restart"
+        uses: huggingface/hub-action@v6
+        with:
+          # 你的Hugging Face用户名/Space名
+          repo_id: "fenghuixianyu/MixTex_Streamlit"
+          # 告诉它这是一个 Space 仓库
+          repo_type: space
+          # 从GitHub Secrets获取认证Token
+          token: ${{ secrets.HF_TOKEN }}
+          # 【关键】这个Action内部会处理好所有认证和推送的细节
