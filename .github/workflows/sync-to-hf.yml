@@ -1,25 +1,44 @@
-   # 文件名: .github/workflows/sync-to-hf.yml
-   
-   name: Sync to Hugging Face Hub
-   
-   on:
-     push:
-       branches:
-         - main  # 你的主分支名，可能是 master
-     
-     workflow_dispatch:
-   
-   jobs:
-     sync-to-hub:
-       runs-on: ubuntu-latest
-       steps:
-         - uses: actions/checkout@v4
-           with:
-             fetch-depth: 0
-             lfs: true
-   
-         - name: Push to Hugging Face Hub
-           env:
-             HF_TOKEN: ${{ secrets.HF_TOKEN }}
-           run: |
-             git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
+# 文件名: .github/workflows/sync-to-hf.yml
+
+name: Sync to Hugging Face Hub (Optimized)
+
+on:
+  push:
+    branches:
+      - main  # 确保这是你的主分支名
+  
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      # ⬇️⬇️⬇️ 关键改动 #1：只 checkout 代码，不下载 LFS 文件！ ⬇️⬇️⬇️
+      - name: Checkout GitHub repository (Code Only)
+        uses: actions/checkout@v4
+        with:
+          # 我们不再下载LFS文件，只下载“指针”，这会非常快
+          lfs: false 
+
+      # ⬇️⬇️⬇️ 关键改动 #2：添加 Hugging Face Space 作为远程地址 ⬇️⬇️⬇️
+      - name: Add Hugging Face Space as remote
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add space https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit
+          
+          # 【重要】为了让 Git LFS 知道去哪里上传大文件
+          git config --global credential.helper store
+          echo "https://<你的HF用户名>:${HF_TOKEN}@huggingface.co" > ~/.git-credentials
+          
+      # ⬇️⬇️⬇️ 关键改动 #3：从本地拉取 LFS 文件，并推送到 Space ⬇️⬇️⬇️
+      - name: Pull LFS files from GitHub and Push to Space
+        run: |
+          # 这一步会从 GitHub LFS 下载文件到机器人临时的环境里
+          # 这是不可避免的，但只会运行一次或在LFS文件更新时运行
+          git lfs fetch --all
+
+          # 【核心魔法】这一步，它会把所有文件（包括LFS文件）
+          # 直接推送到 Hugging Face 的 LFS 服务器上！
+          # 它消耗的是 Hugging Face 的流量！
+          git push --force space main
