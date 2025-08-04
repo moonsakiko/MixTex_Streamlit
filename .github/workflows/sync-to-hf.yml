@@ -1,38 +1,39 @@
 # 文件名: .github/workflows/sync-to-hf.yml
+# 最终修正版，解决了 "shallow update not allowed" 问题
 
-name: Sync to Hugging Face Hub (Pointer Push Mode)
+name: Sync to Hugging Face Hub
 
 on:
-  # 当有代码被推送到 main 分支时，自动触发
   push:
     branches:
       - main
   
-  # 允许你手动在 GitHub 的 "Actions" 页面点击运行
   workflow_dispatch:
 
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
-      # 第一步：只检出“指针”，不检出LFS文件
-      # 这一步会瞬间完成，且不消耗任何GitHub LFS流量
-      - name: Checkout repository with LFS pointers
+      # ⬇️⬇️⬇️ 关键的修复在这里 ⬇️⬇️⬇️
+      - name: Checkout repository (FULL HISTORY)
         uses: actions/checkout@v4
         with:
-          lfs: false
+          # fetch-depth: 0 告诉机器人下载完整的、非浅层的历史记录
+          # 这是解决 "shallow update not allowed" 问题的唯一方法
+          fetch-depth: 0
+          lfs: true # 我们需要让 checkout 知道这是一个 LFS 仓库
 
-      # 第二步：将“指针”和代码强制推送到Hugging Face Space
-      # 这一步只会推送几十KB的小文件，瞬间完成
-      - name: Push code and LFS pointers to Space
+      # 第二步：将完整的历史和代码强制推送到 Hugging Face Space
+      - name: Push to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          # 因为 checkout 时 lfs=true，Git LFS 会自动处理大文件
+          # 我们不再需要复杂的“指针推送”模式，直接进行标准推送
           git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
 
-      # 第三步：通过API，远程命令Space进行一次“硬重启”
-      # 这一步会命令Hugging Face用它自己的网络去下载LFS大文件
-      - name: Trigger Space restart to pull LFS files
+      # 第三步：(可选，但推荐保留) 重启 Space 以确保更新生效
+      - name: Trigger Space restart
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
