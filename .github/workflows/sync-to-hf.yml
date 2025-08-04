@@ -1,0 +1,25 @@
+   # 文件名: .github/workflows/sync-to-hf.yml
+   
+   name: Sync to Hugging Face Hub
+   
+   on:
+     push:
+       branches:
+         - main  # 你的主分支名，可能是 master
+     
+     workflow_dispatch:
+   
+   jobs:
+     sync-to-hub:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+           with:
+             fetch-depth: 0
+             lfs: true
+   
+         - name: Push to Hugging Face Hub
+           env:
+             HF_TOKEN: ${{ secrets.HF_TOKEN }}
+           run: |
+             git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
