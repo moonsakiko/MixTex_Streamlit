@@ -12,8 +12,8 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          lfs: false  # <--- 修改在这里！
+          lfs: false  # 保持 false 来跳过 LFS 下载
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
+        run: git push https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main --force # <--- 修改在这里！
