@@ -1,0 +1,7 @@
+streamlit
+numpy
+Pillow
+onnxruntime
+transformers
+tokenizers
+safetensors
