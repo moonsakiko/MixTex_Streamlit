@@ -1,29 +1,32 @@
 # 文件名: .github/workflows/sync-to-hf.yml
-# 最终修正版，使用了最新的、稳定的Action版本号
+# 职责：只负责将 main 分支的最新代码，强制推送到 Hugging Face Space
 
 name: Sync to Hugging Face Hub
 
 on:
   push:
     branches:
-      - main
-  
-  workflow_dispatch:
+      - main  # 当有代码推送到 main 分支时触发
+
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
+      # 第一步：检出【完整历史】的仓库，这是解决 "shallow update" 的关键
       - name: Checkout repository
-        uses: actions/checkout@v4 # 使用最新的 checkout v4 版本
-
-      # ⬇️⬇️⬇️ 关键的修复在这里：将 v6 换成 v0 ⬇️⬇️⬇️
-      - name: Push to Hugging Face Hub
-        uses: huggingface/hub-action@v0 # 使用 v0 这个长期稳定分支
+        uses: actions/checkout@v4
         with:
-          repo_id: "fenghuixianyu/MixTex_Streamlit"
-          repo_type: space
-          token: ${{ secrets.HF_TOKEN }}
-          # ⬇️⬇️⬇️ 新增：为了兼容LFS，我们需要明确地拉取LFS文件 ⬇️⬇️⬇️
-          fetch_depth: 0 # 确保拉取完整历史
-          lfs: true # 确保检出LFS文件
+          fetch-depth: 0
+          lfs: true
+
+      # 第二步：直接使用最基础、最可靠的 git push 命令
+      # 我们不再使用那个复杂的 hub-action，回归本源
+      - name: Push to Hugging Face Hub
+        env:
+          # 从 GitHub Secrets 获取你的 HF Token
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 这条命令是经过验证的、最直接的推送方式
+          git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
