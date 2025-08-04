@@ -1,5 +1,5 @@
 ---
-title: Bilingual Book Translation Workshop
+title: MixTex_Streamlit
 emoji: 📚
 colorFrom: blue
 colorTo: green
