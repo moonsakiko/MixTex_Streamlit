@@ -1,32 +1,20 @@
-# 文件名: .github/workflows/sync-to-hf.yml
-# 职责：只负责将 main 分支的最新代码，强制推送到 Hugging Face Space
-
-name: Sync to Hugging Face Hub
-
+name: Sync to Hugging Face hub
 on:
   push:
-    branches:
-      - main  # 当有代码推送到 main 分支时触发
+    branches: [main]
 
-  workflow_dispatch: # 允许手动触发
+  # 允许你从 Actions 标签页手动运行此工作流程
+  workflow_dispatch:
 
 jobs:
   sync-to-hub:
     runs-on: ubuntu-latest
     steps:
-      # 第一步：检出【完整历史】的仓库，这是解决 "shallow update" 的关键
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           lfs: true
-
-      # 第二步：直接使用最基础、最可靠的 git push 命令
-      # 我们不再使用那个复杂的 hub-action，回归本源
-      - name: Push to Hugging Face Hub
+      - name: Push to hub
         env:
-          # 从 GitHub Secrets 获取你的 HF Token
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: |
-          # 这条命令是经过验证的、最直接的推送方式
-          git push --force https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
+        run: git push https://fenghuixianyu:$HF_TOKEN@huggingface.co/spaces/fenghuixianyu/MixTex_Streamlit main
